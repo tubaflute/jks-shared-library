@@ -1,0 +1,37 @@
+@Library('libin-jks-share') _
+properties([[$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false], buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '4')), parameters([text(defaultValue: 'origin/master', description: '请填写git的分支或者tag在这里', name: 'branchStatus')])])
+def gitUrl = "git@codeup.aliyun.com:newxxx/xxx-ssr/xxx.git"
+def distDir = "wcs/"
+def nodeZipFile = "${JOB_NAME}.zip"
+
+node {
+    env.NODEJS_HOME = tool name: 'node14', type: 'nodejs'
+    env.PATH="${env.NODEJS_HOME}/bin:${env.PATH}"
+
+    stage('clean workspace') {
+        deleteDir()
+    }
+
+    stage('git scm') {
+        try {
+            def branch = getBranch("${params.branchStatus}")
+            echo branch
+            checkout([$class: 'GitSCM', branches: [[name: "${branch}"]], extensions: [], userRemoteConfigs: [[credentialsId: 'xxx_code', name: 'branchStatus', url: gitUrl]]])
+        } catch (Exception e) {
+            echo "Error ${e.message}"
+        }
+    }
+    stage('command') {
+        withNPM(npmrcConfig: 'f43e4686-5383-4b87-a0c7-984a077b1a3e') {
+            try {
+                timedCommand {
+                    cmd = "npm install && npm run build"
+                    logFilePath = 'log.out'
+                }
+                zip defaultExcludes: false, dir: "${distDir}", overwrite: true, exclude: '', glob: '', zipFile: "${nodeZipFile}"
+            } catch (Exception e) {
+                echo "Error ${e.message}"
+            }
+        }
+    }
+}

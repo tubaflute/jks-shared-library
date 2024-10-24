@@ -1,0 +1,32 @@
+def call(String gitUrl) {
+// def call(String gitUrl, String appName, String packageName, String branchName) {
+    pipeline {
+        agent any
+        environment {
+            GIT_URL = "${gitUrl}"
+            // APP_NAME = "${appName}"
+            // PACKAGE_NAME = "${packageName}"
+            // BRANCH_NAME = "${branchName}"
+        }
+        parameters {
+            string description: '请输入分支或者tag', name: 'branchStatus'
+        }
+        stages {
+            stage('Checkout') {
+                steps {
+                    // 检出指定分支的代码
+                    // git branch: BRANCH_NAME, url: GIT_URL
+                    checkout([$class: 'GitSCM', branches: [[name: '${branchStatus}']], extensions: [], userRemoteConfigs: [[credentialsId: 'xxx_code', url: GIT_URL]]])
+                }
+            }
+        }
+        post {
+            success {
+                echo "Pipeline completed successfully."
+            }
+            failure {
+                echo "Pipeline failed."
+            }
+        }
+    }
+}
